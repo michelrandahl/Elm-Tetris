@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <!-- while developing -->
+    <meta name="viewport" content="width=device-width">
+    <title>Tetris</title>
+    <style>
+      body {
+        background-color: #222;
+      }
+      #game {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+      #matrix {
+        background-color: white;
+        border: 3px solid black;
+        position: relative;
+      }
+      #status {
+        background-color: blue;
+        color: #ddd;
+        display: flex;
+        flex-direction: column;
+        border: 3px solid black;
+      }
+      .status-text-field {
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.5rem;
+        padding: 5px;
+        margin: auto;
+      }
+      #game-over {
+        color: red;
+        font-family: 'Oswald', sans-serif;
+        font-size: 2rem;
+        font-weight: bold;
+        position: absolute;
+        top: 40%;
+        left: 7%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script src="app.js"></script>
+    <script>
+      //Elm.Blocks.init({node: document.getElementById("app")});
+      Elm.Game.init({node: document.getElementById("app")});
+    </script>
+  </body>
+</html>
