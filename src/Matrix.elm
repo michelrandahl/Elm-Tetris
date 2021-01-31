@@ -11,13 +11,24 @@ type alias MatrixArea =
     Dict TilePoint Color
 
 
+countFilledTiles : MatrixArea -> Int
+countFilledTiles matrixArea =
+    matrixArea
+        |> Dict.toList
+        |> List.length
+
+
+type alias TetrominoLocation =
+    ( Int, Int )
+
+
 type alias Matrix =
     { matrixArea : MatrixArea
     , lineCounts : Dict Int Int
     , height : Int
     , width : Int
     , blockSize : Int
-    , tetrominoLocation : TilePoint
+    , tetrominoLocation : TetrominoLocation
 
     --, currentTetromino : Tetromino
     }
@@ -55,8 +66,35 @@ addTetrominoToMatrix matrixArea { shape, color } =
         |> Dict.union matrixArea
 
 
+is_inside_matrix : Tetromino -> Int -> Bool
+is_inside_matrix tetromino matrixWidth =
+    tetromino
+        |> .shape
+        |> List.all (Tuple.first >> (\x -> 0 <= x && x < matrixWidth))
+
+
+tetromino_is_colliding : Tetromino -> MatrixArea -> Bool
+tetromino_is_colliding tetromino matrixArea =
+    let
+        tetrominoTilesCount =
+            tetromino |> .shape |> List.length
+
+        matrixTilesCount =
+            matrixArea |> Dict.toList |> List.length
+
+        unionCount =
+            matrixArea
+                |> Dict.keys
+                |> List.append tetromino.shape
+                |> ListExtra.unique
+                |> List.length
+    in
+    unionCount < tetrominoTilesCount + matrixTilesCount
+
+
 addTetrominoToClutter : Tetromino -> Matrix -> Matrix
 addTetrominoToClutter tetromino ({ matrixArea, tetrominoLocation, lineCounts } as matrix) =
+    -- TODO: refactor Matrix to not include lineCounts, then it will make more sense to use the function to verify position...
     let
         transposedTetromino : Tetromino
         transposedTetromino =
@@ -74,7 +112,7 @@ addTetrominoToClutter tetromino ({ matrixArea, tetrominoLocation, lineCounts } a
             tetrominoLineCounts
                 |> List.foldl
                     (\( lineNumber, count ) ->
-                        -- TODO: in the tutorial, introduce bug here by only using `Dict.update` and 'forgetting' to add if not exists
+                        -- TODO: in the tutorial, introduce bug here by only using `Dict.update` and 'forgetting' to add if not exists (withDefault)
                         -- introduce the debugger
                         -- and introduce Debug.log
                         -- Dict.update lineNumber (Maybe.map ((+) count))

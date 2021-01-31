@@ -5,6 +5,7 @@ import Browser.Events exposing (onKeyDown)
 import Collage exposing (Collage)
 import Collage.Layout exposing (horizontal, vertical)
 import Collage.Render exposing (svg)
+import Dict exposing (Dict)
 import GameInteraction exposing (..)
 import Html exposing (Html, div, text)
 import Html.Attributes as Attributes exposing (class, style)
@@ -235,10 +236,30 @@ evaluateGameTick ({ tetromino, speed, tickCounter, matrix, hardDrop, level, line
         )
 
 
+attemptRotation : Tetromino -> TetrominoLocation -> Int -> MatrixArea -> Maybe Tetromino
+attemptRotation tetromino tetrominoLocation matrixWidth matrixArea =
+    let
+        rotatedTetromino =
+            tetromino |> rotate (RotateRight NoRotation)
+
+        locatedTetromino =
+            rotatedTetromino |> transposeTetromino tetrominoLocation
+
+        validRotation =
+            is_inside_matrix locatedTetromino matrixWidth
+                && not (tetromino_is_colliding locatedTetromino matrixArea)
+    in
+    if validRotation then
+        Just rotatedTetromino
+
+    else
+        Nothing
+
+
 reactToSwipeStop : Model -> TouchCoordinate -> Maybe TouchCoordinate -> ( Model, Cmd Msg )
 reactToSwipeStop ({ matrix, tetromino } as model) newCoordinates startTouchCoordinates =
     let
-        { tetrominoLocation, width } =
+        { tetrominoLocation, width, matrixArea } =
             matrix
     in
     startTouchCoordinates
@@ -247,18 +268,12 @@ reactToSwipeStop ({ matrix, tetromino } as model) newCoordinates startTouchCoord
             (\verticalSwipe ->
                 case verticalSwipe of
                     SwipeUpStop ->
-                        let
-                            rotated =
-                                rotate (RotateRight NoRotation) tetromino
+                        case attemptRotation tetromino tetrominoLocation width matrixArea of
+                            Just locatedTetromino ->
+                                { model | tetromino = locatedTetromino }
 
-                            ( locationX, _ ) =
-                                tetrominoLocation
-                        in
-                        if rotated.shape |> List.any (Tuple.first >> (+) locationX >> (\x -> x < 0 || x >= width)) then
-                            model
-
-                        else
-                            { model | tetromino = rotated }
+                            Nothing ->
+                                model
 
                     SwipeDownStop ->
                         { model
@@ -279,7 +294,7 @@ reactToSwipeStop ({ matrix, tetromino } as model) newCoordinates startTouchCoord
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg ({ matrix, tetromino, gameState, startTouchCoordinates } as model) =
     let
-        { tetrominoLocation, blockSize, width } =
+        { tetrominoLocation, blockSize, width, matrixArea } =
             matrix
     in
     case gameState of
@@ -298,20 +313,12 @@ update msg ({ matrix, tetromino, gameState, startTouchCoordinates } as model) =
                     ( { model | matrix = forceTetrominoDown tetromino matrix, hardDrop = True }, Cmd.none )
 
                 Keypress KeyUp ->
-                    let
-                        rotated =
-                            rotate (RotateRight NoRotation) tetromino
+                    case attemptRotation tetromino tetrominoLocation width matrixArea of
+                        Just locatedTetromino ->
+                            ( { model | tetromino = locatedTetromino }, Cmd.none )
 
-                        ( locationX, _ ) =
-                            tetrominoLocation
-                    in
-                    if rotated.shape |> List.any (Tuple.first >> (+) locationX >> (\x -> x < 0 || x >= width)) then
-                        ( model, Cmd.none )
-
-                    else
-                        ( { model | tetromino = rotated }
-                        , Cmd.none
-                        )
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Keypress KeyOther ->
                     ( model, Cmd.none )
